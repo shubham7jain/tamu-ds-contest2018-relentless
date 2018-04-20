@@ -23,8 +23,8 @@ mapbox_access_token = 'pk.eyJ1IjoiYWxpc2hvYmVpcmkiLCJhIjoiY2ozYnM3YTUxMDAxeDMzcG
 
 
 def initialize():
-    # df = pd.read_pickle("../Downloads/data/Cleaned_Data_2016.pkl")
-    df = pd.read_csv("/Users/shubhamjain/Downloads/100000.csv")
+    df = pd.read_pickle("../Downloads/data/Cleaned_Data_2016.pkl")
+    # df = pd.read_csv("/Users/shubhamjain/Downloads/100000.csv")
     df = df[['Trip Start Timestamp', 'Pickup Centroid Latitude', 'Pickup Centroid Longitude']]
     df['Trip Start Timestamp'] = pd.to_datetime(df['Trip Start Timestamp'], format="%m/%d/%Y %I:%M:%S %p")
     totalList = []
@@ -36,13 +36,14 @@ def initialize():
     df.drop("Pickup Centroid Latitude", 1, inplace=True)
     df.drop("Pickup Centroid Longitude", 1, inplace=True)
 
-
+    totalList = []
     for month in df.groupby(df.index.month):
-        dailyList = []
-        for day in month[1].groupby(month[1].index.day):
-            dailyList.append(day[1])
-        totalList.append(dailyList)
-    return np.array(totalList)
+        # dailyList = []
+        # for day in month[1].groupby(month[1].index.day):
+        #     dailyList.append(day[1])
+        print(month[1].size)
+        totalList.append(month[1][:(int(month[1].size*0.02))])
+    return totalList
 
 
 app.layout = html.Div([
@@ -54,26 +55,20 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='my-dropdown',
                 options=[
-                    {'label': 'January', 'value': 'Jan'},
-                    {'label': 'February', 'value': 'Feb'},
-                    {'label': 'March', 'value': 'Mar'},
-                    {'label': 'April', 'value': 'Apr'},
-                    {'label': 'May', 'value': 'May'},
-                    {'label': 'June', 'value': 'June'},
-                    {'label': 'July', 'value': 'July'},
-                    {'label': 'Aug', 'value': 'Aug'},
-                    {'label': 'Sept', 'value': 'Sept'},
-                    {'label': 'October', 'value': 'Oct'},
-                    {'label': 'November', 'value': 'Nov'},
-                    {'label': 'December', 'value': 'Dec'}
+                    {'label': 'April 2014', 'value': 'Apr'},
+                    {'label': 'May 2014', 'value': 'May'},
+                    {'label': 'June 2014', 'value': 'June'},
+                    {'label': 'July 2014', 'value': 'July'},
+                    {'label': 'Aug 2014', 'value': 'Aug'},
+                    {'label': 'Sept 2014', 'value': 'Sept'}
                 ],
-                value="Jan",
+                value="Apr",
                 placeholder="Please choose a month",
                 className="month-picker"
             ),
             html.Div([
                 html.Div([
-                    html.H2("Dash - Chicago Taxi Data App", style={'font-family': 'Dosis'}),
+                    html.H2("Dash - Uber Data App", style={'font-family': 'Dosis'}),
                     html.Img(src="https://s3-us-west-1.amazonaws.com/plotly-tutorials/logo/new-branding/dash-logo-by-plotly-stripe.png",
                             style={
                                 'height': '100px',
@@ -149,18 +144,12 @@ app.layout = html.Div([
 
 def getValue(value):
     val = {
-        'Jan': 31,
-        'Feb': 28,
-        'Mar': 31,
         'Apr': 30,
         'May': 31,
         'June': 30,
         'July': 31,
         'Aug': 31,
-        'Sept': 30,
-        'Oct': 31,
-        'Nov': 30,
-        'Dec': 31
+        'Sept': 30
     }[value]
     return val
 
@@ -168,18 +157,12 @@ def getIndex(value):
     if(value==None):
         return 0
     val = {
-        'Jan': 0,
-        'Feb': 1,
-        'Mar': 2,
-        'Apr': 3,
-        'May': 4,
-        'June': 5,
-        'July': 6,
-        'Aug': 7,
-        'Sept': 8,
-        'Oct': 9,
-        'Nov': 10,
-        'Dec': 11
+        'Apr': 0,
+        'May': 1,
+        'June': 2,
+        'July': 3,
+        'Aug': 4,
+        'Sept': 5
     }[value]
     return val
 
@@ -222,7 +205,7 @@ def update_bar_selector(value):
               [Input("my-dropdown", "value"), Input('my-slider', 'value')])
 def update_total_rides(value, slider_value):
     return ("Total # of rides: {:,d}"
-            .format(len(totalList[getIndex(value)][slider_value-1])))
+            .format(len(totalList[getIndex(value)])))
 
 
 @app.callback(Output("total-rides-selection", "children"),
@@ -234,9 +217,7 @@ def update_total_rides_selection(value, slider_value, selection):
     totalInSelction = 0
     for x in selection:
         totalInSelction += len(totalList[getIndex(value)]
-                                        [slider_value-1]
-                                        [totalList[getIndex(value)]
-                                                [slider_value-1].index.hour == int(x)])
+                                        [totalList[getIndex(value)].index.hour == int(x)])
     return ("Total rides in selection: {:,d}"
             .format(totalInSelction))
 
@@ -299,11 +280,12 @@ def get_selection(value, slider_value, selection):
         if i in xSelected and len(xSelected) < 24:
             colorVal[i] = ('#FFFFFF')
         xVal.append(i)
-        yVal.append(len(totalList[getIndex(value)][slider_value-1]
-                    [totalList[getIndex(value)][slider_value-1].index.hour == i]))
+        yVal.append(len(totalList[getIndex(value)]
+                    [totalList[getIndex(value)].index.hour == i]))
 
     return [np.array(xVal), np.array(yVal), np.array(xSelected),
             np.array(colorVal)]
+
 
 
 @app.callback(Output("histogram", "figure"),
@@ -378,7 +360,7 @@ def update_histogram(value, slider_value, selection):
 
 
 def get_lat_lon_color(selectedData, value, slider_value):
-    listStr = "totalList[getIndex(value)][slider_value-1]"
+    listStr = "totalList[getIndex(value)]"
     if(selectedData is None or len(selectedData) is 0):
         return listStr
     elif(int(selectedData[len(selectedData)-1])-int(selectedData[0])+2 == len(selectedData)+1 and len(selectedData) > 2):
@@ -407,8 +389,6 @@ def update_graph(value, slider_value, selectedData, prevLayout, mapControls):
     bearing = 0
 
     listStr = get_lat_lon_color(selectedData, value, slider_value)
-
-    print(eval(listStr)['Lat'].size)
 
     if(prevLayout is not None and mapControls is not None and
        'lock' in mapControls):
