@@ -10,6 +10,7 @@ from flask_cors import CORS
 import pandas as pd
 import numpy as np
 import os
+import random
 
 app = dash.Dash('UberApp')
 server = app.server
@@ -24,18 +25,25 @@ mapbox_access_token = 'pk.eyJ1IjoiYWxpc2hvYmVpcmkiLCJhIjoiY2ozYnM3YTUxMDAxeDMzcG
 
 def initialize():
     # df = pd.read_pickle("../Downloads/data/Cleaned_Data_2016.pkl")
-    df = pd.read_csv("/Users/shubhamjain/Downloads/100000.csv")
+    df = pd.read_csv("100000.csv")
     df = df[['Trip Start Timestamp', 'Pickup Centroid Latitude', 'Pickup Centroid Longitude']]
     df['Trip Start Timestamp'] = pd.to_datetime(df['Trip Start Timestamp'], format="%m/%d/%Y %I:%M:%S %p")
     totalList = []
     df.index = df["Trip Start Timestamp"]
     df.drop("Trip Start Timestamp", 1, inplace=True)
 
-    df['Lat'] = df['Pickup Centroid Latitude']
-    df['Lon'] = df['Pickup Centroid Longitude']
+    def f(row):
+        return row['Lat1']+float(random.randint(1000, 10000)-5000)/10000000
+    def f1(row):
+        return row['Lon1']+float(random.randint(1000, 10000)-5000)/10000000
+
+    df['Lat1'] = df['Pickup Centroid Latitude']
+    df['Lon1'] = df['Pickup Centroid Longitude']
     df.drop("Pickup Centroid Latitude", 1, inplace=True)
     df.drop("Pickup Centroid Longitude", 1, inplace=True)
-
+    df['Lat'] = df.apply(f, axis=1)
+    df['Lon'] = df.apply(f1, axis=1)
+    tp = df.groupby(['Lat', 'Lon']).size()
 
     for month in df.groupby(df.index.month):
         dailyList = []
